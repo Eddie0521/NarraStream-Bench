@@ -1,0 +1,162 @@
+# NarraStream-Bench 默认配置
+
+# 评估设置
+evaluation:
+  segment_duration: 10  # 每段视频时长(秒)
+  num_key_frames: 5     # 每段采样的关键帧数
+  vlm_frames_per_segment: 5  # VLM 每段取 5 帧，6 段共 30 帧
+
+cache:
+  metric_results:
+    enabled: true
+  vlm_frames:
+    enabled: true
+    cache_dir: ./cache/vlm_frames
+  languagebind:
+    enabled: true
+    cache_dir: ./cache/languagebind
+
+# 模型设置
+models:
+  dino:
+    model_name: dino_vitb16
+    input_size: 224
+  clip:
+    model_name: ViT-B/32
+  raft:
+    model_name: raft
+    iters: 20
+    small: false
+    mixed_precision: false
+    alternate_corr: false
+  languagebind:
+    cache_dir: ./pretrained
+  vtss:
+    # VTSS raw scores are normalized and aggregated by NarraStream-Bench.
+    enabled: true
+
+# 聚合策略
+aggregation:
+  llm_prompt_weighting:
+    enabled: true
+    service_name: planner
+    cache_dir: ./cache/prompt_weights
+    fallback_strategy: mean
+  metrics:
+    subject_consistency:
+      strategy: llm_prompt_weighted_mean
+      cache_version: v2_local_p25_inter_medoid
+      frame_positions: [0.1, 0.3, 0.5, 0.7, 0.9]
+      intra_reduction: p25
+      inter_reduction: p25
+      local_weight: 0.34
+      inter_weight: 0.66
+      inter_adjacent_weight: 0.50
+      inter_anchor_weight: 0.50
+    background_consistency:
+      strategy: llm_prompt_weighted_mean
+      cache_version: v2_local_p25_inter_medoid
+      frame_positions: [0.1, 0.3, 0.5, 0.7, 0.9]
+      intra_reduction: p25
+      inter_reduction: p25
+      local_weight: 0.34
+      inter_weight: 0.66
+      inter_adjacent_weight: 0.50
+      inter_anchor_weight: 0.50
+    temporal_flickering:
+      strategy: llm_prompt_weighted_mean
+      raw_error_mode: raft_warped_luma
+      frame_sample_count: 8
+      fb_consistency_alpha: 0.01
+      fb_consistency_beta: 0.5
+      min_mask_ratio: 0.05
+      mask_fallback: in_bounds
+      pair_spatial_reduction: p90
+      raw_error_reduction: p84
+      score_mapping: exp
+      tau: 0.5
+    motion_smoothness:
+      strategy: llm_prompt_weighted_mean
+      score_mapping: exp
+      tau: 3.0
+    vtss:
+      strategy: llm_prompt_weighted_mean
+      score_mapping: anchored_linear
+      raw_low: 0.02
+      raw_high: 0.075
+    boundary_smoothness:
+      strategy: llm_prompt_transition_weighted_mean
+      cache_version: single_level_relative_match_v1
+      fallback_strategy: mean
+      window_size: 2
+      flow_tolerance_abs: 0.02
+      flow_tolerance_rel: 0.5
+    conditional_adjacent:
+      strategy: llm_prompt_transition_weighted_mean
+      fallback_strategy: mean
+      similarity_mapping: affine_power
+      similarity_floor: 0.79
+      similarity_power: 2.0
+      cache_version: v3_affine_power_raw
+    conditional_longrange:
+      entity_strategy: llm_prompt_target_weighted_mean
+      sample_strategy: llm_prompt_coverage_weighted_mean
+      fallback_entity_strategy: reverse_weighted
+      fallback_sample_strategy: mean
+      similarity_mapping: affine_power
+      similarity_floor: 0.58
+      similarity_power: 1.5
+      target_weight_alpha: 0.7
+      sample_weight_alpha: 0.0
+      sample_weight_transform: identity
+      cache_version: v4_affine_power_weightshrink_raw
+    entity_grounding:
+      strategy: llm_prompt_weighted_mean
+      cache_version: v5_eg_entity_main
+      llm_service_name: planner
+      cache_dir: ./cache/entity_grounding
+      max_entities: 4
+      max_attributes_per_entity: 5
+      fallback_score: 0.5
+      empty_entity_score: 0.5
+    dynamic_trajectory:
+      strategy: direct
+      cache_version: transition_selectivity_v1_raw
+      center: 0.25
+      temp: 0.05
+      tau_on: 0.02
+      tau_off: 0.06
+    vlm_score:
+      strategy: direct
+      segment_weight: 0.8
+      overall_weight: 0.2
+      fallback_score: 0.5
+
+services:
+  mllm:
+    provider: siliconflow
+    base_url: https://api.siliconflow.cn/v1
+    api_key_env: SILICONFLOW_API_KEY
+    model: Qwen/Qwen3-VL-30B-A3B-Instruct
+    max_tokens: 256
+    temperature: 0.0
+  vlm:
+    provider: siliconflow
+    base_url: https://api.siliconflow.cn/v1
+    api_key_env: SILICONFLOW_API_KEY
+    model: Qwen/Qwen3-VL-30B-A3B-Instruct
+    max_tokens: 256
+    temperature: 0.0
+  planner:
+    provider: siliconflow
+    base_url: https://api.siliconflow.cn/v1
+    api_key_env: SILICONFLOW_API_KEY
+    model: Qwen/Qwen3.5-27B
+    max_tokens: 256
+    temperature: 0.0
+
+# 指标权重 (可选，默认均等)
+weights:
+  quality: 1.0
+  temporal: 1.0
+  instruction: 1.0

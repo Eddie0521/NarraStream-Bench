@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "narrastream-bench-languagebind"
+version = "0.1.0"
+description = "Vendored LanguageBind runtime package for NarraStream-Bench"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "accelerate>=0.20.3",
+    "decord==0.6.0",
+    "einops==0.6.1",
+    "numpy<2",
+    "opencv-python",
+    "Pillow",
+    "SoundFile",
+    "torch==2.1.2",
+    "torchaudio==2.1.2",
+    "torchvision==0.16.2",
+    "transformers==4.30.2",
+    "peft==0.4.0",
+    "pytorchvideo==0.1.5",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

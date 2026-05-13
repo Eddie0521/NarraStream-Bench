@@ -1,0 +1,23 @@
+# Model path configuration.
+# Relative paths are resolved from the NarraStream-Bench repository root.
+
+dino:
+  weights_path: ./pretrained/dino_vitbase16_pretrain.pth
+
+clip:
+  weights_path: ./pretrained/ViT-B-32.pt
+
+raft:
+  weights_path: ./pretrained/raft_model/models/raft-things.pth
+
+amt:
+  config_path: ./pretrained/amt_model/AMT-S.yaml
+  checkpoint_path: ./pretrained/amt_model/amt-s.pth
+
+languagebind:
+  cache_dir: ./pretrained
+  video_model: ./pretrained/LanguageBind_Video_FT
+
+vtss:
+  config_path: null
+  checkpoint_path: ./pretrained/vtss/infer.pth

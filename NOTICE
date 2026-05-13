@@ -1,0 +1,16 @@
+NarraStream-Bench includes code adapted from third-party projects.
+
+- `narrastream_bench/third_party/raft/` contains RAFT runtime code under
+  BSD-3-Clause terms.
+- `narrastream_bench/third_party/amt/` contains AMT runtime code under
+  Creative Commons Attribution-NonCommercial 4.0 terms.
+- `narrastream_bench/third_party/languagebind/` contains LanguageBind runtime
+  code. See its bundled license.
+- `narrastream_bench/third_party/vtss/` contains VTSS inference code adapted
+  from IVEBench.
+- `narrastream_bench/third_party/dino_vit.py` is adapted from DINO.
+- `narrastream_bench/utils/video_primitives.py` includes helpers adapted from
+  VBench.
+
+External model checkpoints are not bundled with this repository. Users must
+download them separately and comply with the upstream licenses.
