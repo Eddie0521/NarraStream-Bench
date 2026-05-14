@@ -5,7 +5,7 @@
 # <div align="center" >Benchmark introduced in "Advancing Narrative Long Video Generation via Training-Free Identity-Aware Memory"<div align="center">
 
 <p align="center">
-  <a href="https://sihuiji.github.io/MemFlow.github.io/"><img src="https://img.shields.io/badge/Project-Page-Green"></a>
+  <a href="https://eddie0521.github.io/projects/iamflow/"><img src="https://img.shields.io/badge/Project-Page-Green"></a>
   &nbsp;
   <img src="https://img.shields.io/static/v1?label=arXiv&message=Coming%20Soon&color=red&logo=arxiv">
   &nbsp;
