@@ -104,7 +104,7 @@ class LanguageBind(nn.Module):
         self.modality_scale = {}
         self.modality_config = {}
         for k, v in clip_type.items():
-            load_kwargs = {"low_cpu_mem_usage": True, "attn_implementation": "eager"}
+            load_kwargs = {"low_cpu_mem_usage": True}
             resolved_path = Path(v).expanduser()
             if resolved_path.exists():
                 pretrained_ckpt = str(resolved_path)

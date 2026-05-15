@@ -19,6 +19,7 @@ CONFIG_PATH="$REPO_DIR/configs/default.yaml"
 PATH_CONFIG="$REPO_DIR/configs/paths.yaml"
 VLM_MODEL=""
 API_WORKERS="4"
+DEVICE="auto"
 RESUME=0
 METRICS=()
 METRICS_SET=0
@@ -46,6 +47,7 @@ Options:
   --gpu-id ID           Bind this run to physical GPU ordinal (0-based, e.g. 4)
                        Auto-resolves against amd-smi/nvidia-smi when available
   --api-workers N       API metric workers. Default: 4
+  --device DEVICE       Torch device: auto, cpu, cuda, or cuda:N. Default: auto
   --resume              Resume from output/results_latest.json
   --vlm-model MODEL      Override VLM model name
   --metrics M1 [M2 ...]  Metrics to run. Default: all
@@ -219,6 +221,11 @@ while (($#)); do
       API_WORKERS="$2"
       shift 2
       ;;
+    --device)
+      [ $# -ge 2 ] || die "--device requires a value"
+      DEVICE="$2"
+      shift 2
+      ;;
     --resume)
       RESUME=1
       shift
@@ -270,6 +277,10 @@ if [[ ! "$API_WORKERS" =~ ^[1-9][0-9]*$ ]]; then
   die "--api-workers must be a positive integer"
 fi
 
+if [[ ! "$DEVICE" =~ ^(auto|cpu|cuda(:[0-9]+)?)$ ]]; then
+  die "--device must be one of: auto, cpu, cuda, cuda:N"
+fi
+
 VIDEO_DIR="$(resolve_path "$VIDEO_DIR")"
 PROMPTS="$(resolve_path "$PROMPTS")"
 EVAL_DATA="$(resolve_path "$EVAL_DATA")"
@@ -286,6 +297,13 @@ CURRENT_PREPROCESS_SIGNATURE="$(printf 'video_dir=%s\nprompts=%s\nsegment_durati
 
 [ -f "$CONFIG_PATH" ] || die "config file not found: $CONFIG_PATH"
 [ -f "$PATH_CONFIG" ] || die "path config file not found: $PATH_CONFIG"
+for THREAD_ENV in OMP_NUM_THREADS MKL_NUM_THREADS OPENBLAS_NUM_THREADS NUMEXPR_NUM_THREADS; do
+  THREAD_VALUE="${!THREAD_ENV:-}"
+  if [ -n "$THREAD_VALUE" ] && [[ ! "$THREAD_VALUE" =~ ^[1-9][0-9]*$ ]]; then
+    echo "Warning: $THREAD_ENV=$THREAD_VALUE is invalid; setting $THREAD_ENV=1." >&2
+    export "$THREAD_ENV=1"
+  fi
+done
 if [ -n "$GPU_ID" ]; then
   eval "$(resolve_gpu_exports "$GPU_ID")"
 fi
@@ -310,6 +328,7 @@ echo "Results dir:   $RESULTS_DIR"
 [ -n "$EVAL_DATA" ] && echo "Eval data:     $EVAL_DATA"
 echo "Segment sec:   $SEGMENT_DURATION"
 echo "API workers:   $API_WORKERS"
+echo "Torch device:  $DEVICE"
 
 if [ -n "$GPU_ID" ]; then
   echo "GPU binding:   physical GPU(s) $GPU_ID via ${GPU_BINDING_KIND:-unknown}"
@@ -364,6 +383,7 @@ EVAL_CMD=(
   --config "$CONFIG_PATH"
   --path_config "$PATH_CONFIG"
   --api-workers "$API_WORKERS"
+  --device "$DEVICE"
 )
 
 if [ "$METRICS_SET" -eq 1 ]; then

@@ -2,8 +2,53 @@
 """评估入口"""
 import argparse
 import json
+import sys
 import torch
 from narrastream_bench.core.evaluator import NarraStreamBench
+
+
+def _cuda_arch_is_supported(device_index=0):
+    major, minor = torch.cuda.get_device_capability(device_index)
+    required_arch = f"sm_{major}{minor}"
+    supported_arches = set(torch.cuda.get_arch_list())
+    return required_arch in supported_arches, required_arch, sorted(supported_arches)
+
+
+def resolve_device(requested):
+    """Resolve the requested torch device, guarding against unsupported CUDA builds."""
+    requested = (requested or "auto").lower()
+    if requested == "auto":
+        if not torch.cuda.is_available():
+            return torch.device("cpu")
+        supported, required_arch, supported_arches = _cuda_arch_is_supported()
+        if supported:
+            return torch.device("cuda")
+        print(
+            "Warning: CUDA device is visible, but this PyTorch build does not "
+            f"support the GPU architecture {required_arch}. Falling back to CPU. "
+            f"Supported architectures: {', '.join(supported_arches) or 'unknown'}",
+            file=sys.stderr,
+            flush=True,
+        )
+        return torch.device("cpu")
+
+    device = torch.device(requested)
+    if device.type != "cuda":
+        return device
+
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA was requested, but torch.cuda.is_available() is false.")
+
+    device_index = 0 if device.index is None else device.index
+    supported, required_arch, supported_arches = _cuda_arch_is_supported(device_index)
+    if not supported:
+        raise RuntimeError(
+            "CUDA was requested, but this PyTorch build does not support "
+            f"GPU architecture {required_arch}. Supported architectures: "
+            f"{', '.join(supported_arches) or 'unknown'}. Install a PyTorch build "
+            "with support for this GPU, or run with --device cpu."
+        )
+    return device
 
 
 def main():
@@ -15,6 +60,11 @@ def main():
     parser.add_argument('--metrics', nargs='+', default=None, help='指标列表，默认全部')
     parser.add_argument('--vlm_model', default=None, help='覆盖配置中的 VLM 模型')
     parser.add_argument('--api-workers', type=int, default=4, help='API 指标并发 worker 数，默认 4')
+    parser.add_argument(
+        '--device',
+        default='auto',
+        help='Torch device: auto, cpu, cuda, or cuda:N. Default: auto',
+    )
     parser.add_argument('--resume', action='store_true', help='从 output/results_latest.json 继续')
     parser.add_argument('--snapshot', default=None, help='快照文件路径，默认 output/results_latest.json')
     parser.add_argument(
@@ -24,7 +74,8 @@ def main():
     )
     args = parser.parse_args()
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = resolve_device(args.device)
+    print(f"Using torch device: {device}", flush=True)
 
     bench = NarraStreamBench(
         device=device,
